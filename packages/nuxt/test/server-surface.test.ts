@@ -1,6 +1,10 @@
+import { IncomingMessage, ServerResponse } from 'node:http'
+import { Socket } from 'node:net'
+import { H3Event } from 'nitro/h3'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import {
+  appendResponseHeader,
   createError,
   defineEventHandler,
   deleteCookie,
@@ -19,6 +23,7 @@ import {
   readBody,
   sendRedirect,
   setCookie,
+  setResponseHeader,
   setResponseStatus,
 } from '../src/server/index'
 import type { NuxtErrorLike, RequestEvent } from '../src/server/index'
@@ -316,5 +321,22 @@ describe('the event the surface is typed against', () => {
     expectTypeOf<RequestEvent['context']>().toExtend<Record<string, unknown>>()
     expectTypeOf<RequestEvent>().not.toHaveProperty('node')
     expectTypeOf<RequestEvent>().not.toHaveProperty('waitUntil')
+  })
+})
+
+// Authored by a Codex agent; not yet reviewed by a human.
+describe('response headers', () => {
+  it.each(['web', 'h3 v2', 'h3 v1'] as const)('sets and appends response headers on %s', (runtime) => {
+    const e = runtime === 'h3 v1'
+      ? { node: { res: new ServerResponse(new IncomingMessage(new Socket())) } }
+      : runtime === 'h3 v2' ? new H3Event(new Request('https://nuxt.com/')) : event(new Request('https://nuxt.com/'))
+    const read = (name: string) => 'node' in e ? e.node.res.getHeader(name) : e.res.headers.get(name)
+
+    setResponseHeader(e, 'Vary', 'Origin')
+    setResponseHeader(e, 'vary', 'Accept-Language')
+    appendResponseHeader(e, 'VARY', 'Cookie')
+    appendResponseHeader(e, 'X-Locale', 'de')
+    expect(read('vary')).toEqual(runtime === 'h3 v1' ? ['Accept-Language', 'Cookie'] : 'Accept-Language, Cookie')
+    expect(read('x-locale')).toBe('de')
   })
 })
