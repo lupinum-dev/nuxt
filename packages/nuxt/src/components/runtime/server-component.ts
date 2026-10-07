@@ -31,6 +31,7 @@ export const createServerComponent = (name: string): ServerComponentType => {
     props: { lazy: Boolean },
     emits: ['error'],
     setup (props, { attrs, slots, expose, emit }) {
+      const route = useRoute()
       const vm = getCurrentInstance()
       const islandRef = ref<{ refresh: () => Promise<void> } | null>(null)
 
@@ -43,6 +44,7 @@ export const createServerComponent = (name: string): ServerComponentType => {
           name,
           lazy: props.lazy,
           props: attrs,
+          context: { url: route.fullPath.replace(/#.*$/, '') },
           scopeId: vm?.vnode.scopeId,
           ref: islandRef,
           onError: (err) => {
