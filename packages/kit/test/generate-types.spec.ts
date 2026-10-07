@@ -41,6 +41,33 @@ const mockNuxt = {
 const mockNuxtWithOptions = (options: NuxtConfig) => defu({ options }, mockNuxt) as Nuxt
 
 describe('tsConfig generation', () => {
+  // Authored by a Codex agent; not yet reviewed by a human.
+  it('adds template directory wildcards before the build directory exists', async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), 'nuxt-template-alias-'))
+    const buildDir = join(rootDir, '.nuxt')
+    const nuxt = mockNuxtWithOptions({
+      rootDir,
+      buildDir,
+      alias: { '#x': join(buildDir, 'x'), '#file': join(buildDir, 'x/messages.ts'), '#prefix': join(buildDir, 'xx') },
+      build: { templates: [{ filename: 'x/messages.ts', getContents: () => 'export default {}' }] },
+    })
+    try {
+      const fresh = await _generateTypes(nuxt)
+      for (const config of [fresh.tsConfig, fresh.serverTsConfig]) {
+        expect(config.compilerOptions?.paths?.['#x/*']).toEqual(['./x/*'])
+        expect(config.compilerOptions?.paths?.['#file/*']).toBeUndefined()
+        expect(config.compilerOptions?.paths?.['#prefix/*']).toBeUndefined()
+      }
+      await mkdir(join(buildDir, 'x'), { recursive: true })
+      await writeFile(join(buildDir, 'x/messages.ts'), 'export default {}')
+      const subsequent = await _generateTypes(nuxt)
+      expect(subsequent.tsConfig.compilerOptions?.paths?.['#x/*']).toEqual(['./x/*'])
+      expect(subsequent.serverTsConfig.compilerOptions?.paths?.['#x/*']).toEqual(['./x/*'])
+    } finally {
+      await rm(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it('should add correct relative paths for aliases', async () => {
     const { tsConfig } = await _generateTypes(mockNuxt)
     expect(tsConfig.compilerOptions?.paths).toMatchInlineSnapshot(`
