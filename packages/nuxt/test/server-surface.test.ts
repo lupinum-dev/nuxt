@@ -1,5 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
+import { createRequire } from 'node:module'
 import { H3Event } from 'nitro/h3'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
@@ -326,11 +327,15 @@ describe('the event the surface is typed against', () => {
 
 // Authored by a Codex agent; not yet reviewed by a human.
 describe('response headers', () => {
+  // h3 v1 is Nitro 2's nested dependency; keep the CommonJS boundary typed.
+  const { createEvent }: { createEvent: (req: IncomingMessage, res: ServerResponse) => { node: { res: ServerResponse } } } = createRequire(import.meta.resolve('nitropack/package.json'))('h3')
   it.each(['web', 'h3 v2', 'h3 v1'] as const)('sets and appends response headers on %s', (runtime) => {
+    const request = new IncomingMessage(new Socket())
+    const legacyResponse = new ServerResponse(request)
     const e = runtime === 'h3 v1'
-      ? { node: { res: new ServerResponse(new IncomingMessage(new Socket())) } }
+      ? createEvent(request, legacyResponse)
       : runtime === 'h3 v2' ? new H3Event(new Request('https://nuxt.com/')) : event(new Request('https://nuxt.com/'))
-    const read = (name: string) => 'node' in e ? e.node.res.getHeader(name) : e.res.headers.get(name)
+    const read = (name: string) => runtime === 'h3 v1' ? legacyResponse.getHeader(name) : 'res' in e ? e.res.headers.get(name) : undefined
 
     setResponseHeader(e, 'Vary', 'Origin')
     setResponseHeader(e, 'vary', 'Accept-Language')

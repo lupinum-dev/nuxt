@@ -313,6 +313,35 @@ export function setResponseStatus (event: EventWithResponse, status: number, sta
   }
 }
 
+/** A Nitro 2 response uses Node headers rather than the web-standard response. */
+type EventWithResponseHeaders = EventWithResponse | {
+  node: {
+    res: {
+      getHeader: (name: string) => string | number | string[] | undefined
+      setHeader: (name: string, value: string | readonly string[]) => unknown
+    }
+  }
+}
+
+/** Set a response header, replacing any existing value. */
+export function setResponseHeader (event: EventWithResponseHeaders, name: string, value: string): void {
+  if ('res' in event && 'headers' in event.res) {
+    event.res.headers.set(name, value)
+  } else if ('node' in event) {
+    event.node.res.setHeader(name, value)
+  }
+}
+
+/** Append a response header without replacing existing values. */
+export function appendResponseHeader (event: EventWithResponseHeaders, name: string, value: string): void {
+  if ('res' in event && 'headers' in event.res) {
+    event.res.headers.append(name, value)
+  } else if ('node' in event) {
+    const existing = event.node.res.getHeader(name)
+    event.node.res.setHeader(name, existing === undefined ? value : [...[existing].flat().map(String), value])
+  }
+}
+
 /**
  * Read the query string of the request. A repeated parameter resolves to an
  * array, so a type parameter should account for that.

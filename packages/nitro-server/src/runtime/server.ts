@@ -44,6 +44,7 @@ export { useRuntimeConfig } from 'nitro/runtime-config'
 export { useNitroHooks as useServerHooks } from 'nitro/app'
 
 export {
+  appendResponseHeader,
   createError,
   deriveSecret,
   getRequestHeader,
@@ -52,6 +53,7 @@ export {
   NuxtError,
   parseCookies,
   sendRedirect,
+  setResponseHeader,
   setResponseStatus,
   useAppConfig,
 } from 'nuxt/internal/server-default'

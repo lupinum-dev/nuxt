@@ -103,10 +103,10 @@ const FOURX_VALUE_EXPORTS = [
 ]
 
 /** Value exports only this branch has. */
-const MAIN_ONLY_VALUE_EXPORTS = ['NuxtError']
+const MAIN_ONLY_VALUE_EXPORTS = ['NuxtError', 'setResponseHeader', 'appendResponseHeader']
 
 describe('the `nuxt/server` surface against 4.x', () => {
-  it('carries every value export 4.x does, and nothing else but `NuxtError`', async () => {
+  it('carries every value export 4.x does, plus the main-only additions', async () => {
     const names = await resolveModuleExportNames(new URL('../src/server/index.ts', import.meta.url).pathname, { url: import.meta.url })
 
     expect(FOURX_VALUE_EXPORTS.filter(name => !names.includes(name))).toEqual([])
