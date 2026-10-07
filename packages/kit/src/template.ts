@@ -627,7 +627,11 @@ export async function _generateTypes (nuxt: Nuxt): Promise<GenerateTypesReturn> 
 
     const relativePath = relativeWithDot(typesDir, absolutePath)
     const serverRelativePath = relativeWithDot(typesDir, serverAbsolutePath)
-    if (stats?.isDirectory() || aliases[alias]!.endsWith('/')) {
+    // A template's parent directory may not exist yet on the first prepare.
+    const isTemplateDirectory = !stats && nuxt.options.build?.templates.some(template =>
+      normalizeTemplate(template, nuxt.options.buildDir).dst.startsWith(`${absolutePath}/`),
+    )
+    if (stats?.isDirectory() || aliases[alias]!.endsWith('/') || isTemplateDirectory) {
       tsConfig.compilerOptions.paths[alias] = [relativePath]
       tsConfig.compilerOptions.paths[`${alias}/*`] = [`${relativePath}/*`]
       if (inServer) {
