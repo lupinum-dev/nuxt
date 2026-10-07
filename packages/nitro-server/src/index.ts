@@ -12,7 +12,7 @@ import { joinURL, withTrailingSlash, withoutTrailingSlash } from 'ufo'
 import nuxtPkg from 'nuxt/package.json' with { type: 'json' }
 import { build, copyPublicAssets, createDevServer, createNitro, prepare, prerender, scanHandlers, writeTypes } from 'nitropack'
 import type { Nitro, NitroOptions as NitroBuilderOptions, NitroConfig } from 'nitropack/types'
-import { addPlugin, addTemplate, addTypeTemplate, addVitePlugin, ensureDependencyInstalled, findPath, getAddDependencyCommand, getDirectory, getLayerDirectories, logger, resolveAlias, resolveIgnorePatterns, resolveNuxtModule, resolveTypePaths } from '@nuxt/kit'
+import { addPlugin, addTemplate, addTypeTemplate, addVitePlugin, ensureDependencyInstalled, findPath, getAddDependencyCommand, getDirectory, getLayerDirectories, logger, resolveAlias, resolveDeclarationPath, resolveIgnorePatterns, resolveNuxtModule, resolveTypePaths } from '@nuxt/kit'
 import { bundlerDiagnostics, getServerRuntime, setServerBuild } from '@nuxt/kit/internal'
 import escapeRE from 'escape-string-regexp'
 import { defu } from 'defu'
@@ -751,6 +751,12 @@ export async function bundle (nuxt: Nuxt & { _nitro?: Nitro }): Promise<void> {
     resolveOwnTypePaths(h3PackageJson),
     resolveOwnTypePaths(h3PackageJson, { entry: true }),
   ])
+  // Nitro 2's published type entry re-exports an extensionless path, which
+  // NodeNext cannot follow. Its runtime export has a declaration sibling.
+  ownNodeTypePaths['nitropack/types'] = [await resolveDeclarationPath(resolveModulePath('nitropack/types', {
+    from: [distDir],
+    conditions: ['import'],
+  }))]
   nitroConfig.typescript!.tsConfig!.compilerOptions ||= {}
   nitroConfig.typescript!.tsConfig!.compilerOptions.paths = {
     ...nitroConfig.typescript!.tsConfig!.compilerOptions.paths,
