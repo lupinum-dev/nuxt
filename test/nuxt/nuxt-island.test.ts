@@ -10,7 +10,7 @@ import { createServerComponent } from '../../packages/nuxt/src/components/runtim
 import NuxtIsland from '../../packages/nuxt/src/app/components/nuxt-island'
 
 async function createServer (handler: ServerHandler) {
-  const port = await getPort({ host: 'localhost', public: false, random: true })
+  const port = await getPort({ host: 'localhost', public: false, portRange: [4600, 4699] })
   const server = serve({
     port,
     fetch: handler,
@@ -110,6 +110,26 @@ describe('runtime server component', () => {
   beforeEach(() => {
     consoleError.mockClear()
     consoleWarn.mockClear()
+  })
+
+  // Authored by a Codex agent; not yet reviewed by a human.
+  it('sends the current route URL with server component requests', async () => {
+    const fetchRaw = stubFetchRaw(() => Promise.resolve(islandResponse({
+      id: 'route-aware',
+      html: '<div>route-aware server component</div>',
+      state: {},
+      head: { link: [], style: [] },
+    })))
+    const wrapper = await mountSuspended(createServerComponent('RouteAwareServerComponent'), {
+      route: '/de/catalog?sort=name#details',
+    })
+    try {
+      expect(fetchRaw).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+        query: expect.objectContaining({ url: '/de/catalog?sort=name' }),
+      }))
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('expect no data-v- attributes #23051', () => {
